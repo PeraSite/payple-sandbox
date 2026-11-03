@@ -36,7 +36,7 @@
 ## 기능
 
 - 🧾 **페이플과 같은 요청 형식**: 가맹점 인증(`/php/auth.php`), CERT 승인 요청, 단건·목록 조회, 누적 부분 취소(`/php/api.php`)
-- 🪟 **결제창**: `/js/v1/payment.js`에서 `PaypleCpayAuthCheck()`를 제공하고, 휴대폰에서도 잘 보이는 카드 결제창을 띄운 뒤 결과를 `PCD_RST_URL`로 보내요.
+- 🪟 **실제와 같은 결제창 방식**: 실제 페이플 스크립트처럼 PC에서는 화면 위 레이어(iframe `cpay_ifr`), 모바일에서는 팝업 창으로 결제창을 열고, 그 안에서 결과를 `PCD_RST_URL`로 보내요. 팝업이 막히면 페이플과 같은 안내창이 떠요.
 - 🤖 **에이전트 친화적**: 결제창 자동 승인, 브라우저 없이 결과 전송, 콜백 없이 결제만 완료시키기. 모든 버튼에 `data-testid`가 있어요.
 - 💥 **장애 재현**: 승인 응답 지연(돈은 빠져나갔는데 응답이 끊김), 금액 불일치, 승인 거절, 조회 서버 오류, 취소 실패, 결제창 스크립트 장애
 - 💾 **상태 저장**: JSON 파일에 결제 기록을 남겨서, 서버를 껐다 켜도 환불할 수 있어요.
@@ -101,8 +101,9 @@ sequenceDiagram
     participant M as 내 서버
     B->>S: GET /js/v1/payment.js
     B->>S: PaypleCpayAuthCheck() → POST /__sandbox/checkouts
-    S-->>B: 카드 결제창 (또는 자동 처리)
-    B->>M: PCD_RST_URL로 결과 전송 (PCD_AUTH_KEY, PCD_PAY_REQKEY, PCD_PAY_COFURL)
+    S-->>B: 결제창 (PC: 레이어 iframe / 모바일: 팝업)
+    B->>M: 결제창 안에서 PCD_RST_URL로 결과 전송 (PCD_AUTH_KEY, PCD_PAY_REQKEY, PCD_PAY_COFURL)
+    Note over B,M: 내 콜백 페이지가 window.parent / window.opener로 원래 페이지에 알림
     M->>S: POST /php/auth.php (cst_id, custKey)
     M->>S: POST PCD_PAY_COFURL (승인 요청)
     S-->>M: PCD_PAY_RST=success, 결제 완료
@@ -132,7 +133,7 @@ curl -X POST localhost:9444/__sandbox/scenario -d '{"approvalConfirm":"timeout"}
 curl localhost:9444/__sandbox/state
 ```
 
-결제창 버튼의 test ID는 `payple-sandbox-approve`(결제), `payple-sandbox-decline`(카드사 거절), `payple-sandbox-close`(창 닫기)예요.
+결제창은 PC에서는 `#cpay_ifr` iframe 안에, 모바일에서는 팝업 창에 있어요. 버튼 test ID는 `payple-sandbox-approve`(결제), `payple-sandbox-decline`(카드사 거절), `payple-sandbox-close`(창 닫기)예요.
 
 ## 시나리오
 

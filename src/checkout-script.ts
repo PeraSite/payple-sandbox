@@ -1,33 +1,52 @@
-// Hosted checkout served as `/js/v1/payment.js`. Merchants call the global
-// `PaypleCpayAuthCheck(payload)`; the sandbox shows a card window and posts the
-// CERT result to `PCD_RST_URL` as a full-page form, like Payple on mobile.
+// `/js/v1/payment.js`. Mirrors how Payple's real script opens its window:
+// - PC: a dimmed layer over the merchant page with a 450px iframe (`cpay_ifr`)
+// - Mobile: a popup window opened synchronously inside the click; if the browser
+//   blocks it, Payple's own alert is shown and nothing else happens.
+// The window page (served by the sandbox) posts the CERT result to `PCD_RST_URL`
+// from inside the iframe/popup, so the merchant callback page sees a
+// `window.parent` / `window.opener` exactly as it would with Payple.
 export function checkoutScript(origin: string) {
 	return `(() => {
   const origin = ${JSON.stringify(origin)};
-  function post(url, fields) {
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = url;
-    for (const [name, value] of Object.entries(fields)) {
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = name;
-      input.value = String(value);
-      form.appendChild(input);
+  const mobileAgent = /android.+mobile|iphone|ipod|ipad|iemobile|opera m(ob|in)i|windows phone|blackberry|silk|kindle/i;
+  const popupBlocked = " 팝업이 차단되어 결제를 진행할 수 없습니다. \\r\\n 폰 설정에서 팝업차단을 풀어주세요. ";
+
+  function removeLayer() {
+    document.getElementById("layer_cpay")?.remove();
+  }
+
+  function createLayer() {
+    removeLayer();
+    const layer = document.createElement("div");
+    layer.id = "layer_cpay";
+    layer.setAttribute("role", "dialog");
+    layer.setAttribute("aria-modal", "true");
+    layer.setAttribute("aria-label", "페이플 샌드박스 결제창");
+    layer.style.cssText = "position:fixed;inset:0;z-index:16777270;display:grid;place-items:center;background:rgba(15,23,42,.55)";
+    const frame = document.createElement("iframe");
+    frame.id = "cpay_ifr";
+    frame.name = "cpay_ifr";
+    frame.title = "페이플 샌드박스 결제창";
+    frame.style.cssText = "width:min(450px,100vw);height:min(720px,100dvh);border:0;border-radius:16px;background:#fff;box-shadow:0 24px 64px rgba(0,0,0,.35)";
+    layer.appendChild(frame);
+    document.body.appendChild(layer);
+    return frame;
+  }
+
+  window.PaypleCpayAuthCheck = (payload) => {
+    const isMobile = mobileAgent.test(navigator.userAgent);
+    // Open the window before any await so popup blockers treat it as user-initiated.
+    let target;
+    if (isMobile) {
+      target = window.open("", "payple_sandbox_popup", "width:450px,height:100%,toolbars=no,menubars=no,status=no,resizable=no,location=no");
+      if (!target) {
+        alert(popupBlocked);
+        return false;
+      }
+    } else {
+      target = createLayer().contentWindow;
     }
-    document.body.appendChild(form);
-    form.submit();
-  }
-  function button(label, testId, primary) {
-    const element = document.createElement("button");
-    element.type = "button";
-    element.textContent = label;
-    element.dataset.testid = testId;
-    element.style.cssText = "width:100%;padding:14px;border-radius:10px;font:600 15px sans-serif;border:1px solid #d4d4d8;" + (primary ? "background:#2563eb;color:#fff;border-color:#2563eb" : "background:#fff;color:#18181b");
-    return element;
-  }
-  window.PaypleCpayAuthCheck = async (payload) => {
-    const response = await fetch(origin + "/__sandbox/checkouts", {
+    fetch(origin + "/__sandbox/checkouts", {
       body: JSON.stringify({
         clientKey: payload.clientKey,
         goods: payload.PCD_PAY_GOODS,
@@ -38,33 +57,15 @@ export function checkoutScript(origin: string) {
       }),
       headers: { "Content-Type": "application/json" },
       method: "POST",
-    });
-    if (!response.ok) throw new Error("Payple sandbox rejected the checkout");
-    const checkout = await response.json();
-    const complete = (result) => post(payload.PCD_RST_URL, checkout.fields[result]);
-    if (checkout.autoComplete) return complete(checkout.autoComplete);
-
-    const overlay = document.createElement("div");
-    overlay.id = "payple-sandbox";
-    overlay.setAttribute("role", "dialog");
-    overlay.setAttribute("aria-label", "페이플 샌드박스 결제창");
-    overlay.style.cssText = "position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.55);display:grid;place-items:end center";
-    const sheet = document.createElement("div");
-    sheet.style.cssText = "width:min(420px,100%);background:#fff;border-radius:16px 16px 0 0;padding:20px;display:grid;gap:10px;font:14px sans-serif;color:#18181b";
-    const amount = Number(payload.PCD_PAY_TOTAL).toLocaleString("ko-KR");
-    sheet.innerHTML = '<div style="font:700 12px sans-serif;color:#dc2626">SANDBOX · 실제로 결제되지 않아요</div>'
-      + '<div style="font:700 18px sans-serif"></div><div style="font:800 26px sans-serif"></div>';
-    sheet.children[1].textContent = payload.PCD_PAY_GOODS || "주문";
-    sheet.children[2].textContent = amount + "원";
-    const approve = button("결제하기 (승인)", "payple-sandbox-approve", true);
-    const decline = button("카드사 거절", "payple-sandbox-decline", false);
-    const close = button("결제창 닫기", "payple-sandbox-close", false);
-    approve.onclick = () => complete("approve");
-    decline.onclick = () => complete("decline");
-    close.onclick = () => complete("close");
-    sheet.append(approve, decline, close);
-    overlay.appendChild(sheet);
-    document.body.appendChild(overlay);
+    })
+      .then((response) => response.ok ? response.json() : response.json().then((body) => Promise.reject(new Error(body.error || "결제창을 열 수 없어요"))))
+      .then((checkout) => { target.location.href = checkout.windowUrl; })
+      .catch((error) => {
+        removeLayer();
+        if (isMobile) target.close();
+        alert(error.message);
+      });
+    return true;
   };
 })();`;
 }

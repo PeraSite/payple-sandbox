@@ -210,3 +210,36 @@ describe("scenarios", () => {
 		expect((await env.sandbox.handle(new Request(`${origin}/js/v1/payment.js`))).status).toBe(503);
 	});
 });
+
+describe("hosted window", () => {
+	const open = async (env: ReturnType<typeof setup>) => {
+		const response = await env.post("/__sandbox/checkouts", {
+			clientKey: "client",
+			goods: "레터링 <케이크>",
+			oid,
+			rstUrl: callbackUrl,
+			total: 30_000,
+		});
+		return response.body.windowUrl as string;
+	};
+
+	it("renders a card window that posts each result to PCD_RST_URL", async () => {
+		const env = setup();
+		const windowUrl = await open(env);
+		expect(windowUrl).toBe(`${origin}/__sandbox/window/${oid}`);
+		const html = await (await env.sandbox.handle(new Request(windowUrl))).text();
+		expect(html).toContain("30,000원 결제하기");
+		expect(html).toContain("레터링 &lt;케이크&gt;");
+		for (const id of ["approve", "decline", "close"])
+			expect(html).toContain(`payple-sandbox-${id}`);
+		expect(html).toContain(`action="${callbackUrl}"`);
+		expect(html).toContain('name="PCD_PAY_REQKEY"');
+	});
+
+	it("closes the window once the checkout is settled", async () => {
+		const env = setup();
+		const windowUrl = await open(env);
+		await env.complete("decline");
+		expect((await env.sandbox.handle(new Request(windowUrl))).status).toBe(404);
+	});
+});

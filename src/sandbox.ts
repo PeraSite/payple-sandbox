@@ -2,6 +2,7 @@
 // single/list lookup and cumulative cancellation, a hosted checkout script and a
 // control API under `/__sandbox`. It never talks to Payple or moves money.
 import { checkoutScript } from "./checkout-script";
+import { checkoutWindowHtml } from "./checkout-window";
 
 export type SandboxCredentials = Readonly<{
 	clientKey: string;
@@ -472,13 +473,32 @@ export function createPaypleSandbox(options: SandboxOptions) {
 			return cors(
 				request,
 				json({
+					windowUrl: `${options.origin}/__sandbox/window/${encodeURIComponent(payment.oid)}`,
+				}),
+			);
+		}
+		const windowMatch = url.pathname.match(/^\/__sandbox\/window\/([A-Za-z0-9._-]{1,64})$/);
+		if (windowMatch && request.method === "GET") {
+			const payment = state.payments[windowMatch[1] ?? ""];
+			if (!payment || payment.state !== "pending")
+				return new Response("이미 끝났거나 없는 결제예요.", {
+					headers: { "Content-Type": "text/plain; charset=utf-8" },
+					status: 404,
+				});
+			return new Response(
+				checkoutWindowHtml({
 					autoComplete: state.scenario.autoComplete,
+					callbackUrl: payment.callbackUrl,
 					fields: {
 						approve: callbackFields(payment, "approve"),
 						close: callbackFields(payment, "close"),
 						decline: callbackFields(payment, "decline"),
 					},
+					goods: payment.goods,
+					payerName: payment.payerName,
+					total: payment.total,
 				}),
+				{ headers: { "Cache-Control": "no-store", "Content-Type": "text/html; charset=utf-8" } },
 			);
 		}
 		if (url.pathname.startsWith("/__sandbox/")) return control(request, url.pathname);
