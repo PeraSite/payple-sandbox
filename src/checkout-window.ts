@@ -74,7 +74,10 @@ header{height:56px;display:flex;align-items:center;justify-content:space-between
 .sandbox{margin-left:6px;font-size:10px;font-weight:700;color:#999;letter-spacing:.06em;vertical-align:middle}
 .x{border:0;background:none;width:32px;height:32px;margin-right:-8px;font-size:26px;line-height:1;color:#999;cursor:pointer}
 main{flex:1;padding:0 20px 20px}
-.order{padding:20px 0;border-bottom:8px solid #f5f6f8;margin:0 -20px;padding-left:20px;padding-right:20px}
+.warn{display:flex;gap:10px;align-items:flex-start;margin:16px 0 0;padding:12px 14px;border:1px solid #fde68a;border-radius:8px;background:#fffbeb;color:#92400e;font-size:13px;line-height:1.5}
+.warn b{display:block;color:#78350f;font-size:14px}
+.warn i{flex:none;width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;font-style:normal;font-weight:800;font-size:13px;display:grid;place-items:center;margin-top:1px}
+.order{padding:16px 0 20px;border-bottom:8px solid #f5f6f8;margin:0 -20px;padding-left:20px;padding-right:20px}
 .row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:4px 0;color:#777}
 .row b{color:#222;font-weight:600;text-align:right;word-break:keep-all}
 .row.total b{font-size:22px;font-weight:800;color:#222}
@@ -93,7 +96,7 @@ footer{position:sticky;bottom:0;background:#fff;padding:12px 20px calc(12px + en
 .pay{width:100%;height:52px;border:0;border-radius:8px;background:#3a5bff;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
 .tools{display:flex;justify-content:center;gap:16px;margin-top:10px}
 .tools button{border:0;background:none;padding:4px;font-size:12px;color:#999;text-decoration:underline;cursor:pointer}
-.wait{position:fixed;inset:0;display:none;place-items:center;background:rgba(255,255,255,.85)}
+.wait{position:fixed;inset:0;display:none;place-items:center;align-content:center;gap:14px;background:rgba(255,255,255,.9);font-size:15px;font-weight:600;color:#444}
 .wait.on{display:grid}
 .spinner{width:34px;height:34px;border:3px solid #e5e5e5;border-top-color:#3a5bff;border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -106,6 +109,7 @@ footer{position:sticky;bottom:0;background:#fff;padding:12px 20px calc(12px + en
 <button class="x" type="button" aria-label="닫기" data-result="close">×</button>
 </header>
 <main>
+<div class="warn" role="note"><i>!</i><div><b>테스트 결제창 (샌드박스)</b>실제 결제는 되지 않아요.</div></div>
 <section class="order">
 <div class="row"><span>상품명</span><b>${escapeHtml(input.goods || "-")}</b></div>
 <div class="row total"><span>결제금액</span><b>${amount}<small>원</small></b></div>
@@ -123,7 +127,7 @@ footer{position:sticky;bottom:0;background:#fff;padding:12px 20px calc(12px + en
 </div>
 </footer>
 </div>
-<div class="wait" role="status" aria-label="처리 중"><div class="spinner"></div></div>
+<div class="wait" role="status" aria-live="polite"><div class="spinner"></div><span>결제 진행 중</span></div>
 <script>
 const fields = ${JSON.stringify(input.fields).replaceAll("<", "\\u003c")};
 const callbackUrl = ${JSON.stringify(input.callbackUrl).replaceAll("<", "\\u003c")};
@@ -132,7 +136,12 @@ let sent = false;
 function send(result) {
   if (sent) return;
   sent = true;
+  if (result === "close") return deliver(result);
   document.querySelector(".wait").classList.add("on");
+  // Card approval takes a moment at Payple too.
+  setTimeout(() => deliver(result), 2000 + Math.random() * 1000);
+}
+function deliver(result) {
   const data = fields[result];
   const host = window.opener || (window.parent !== window ? window.parent : null);
   if (embedded && host) {
