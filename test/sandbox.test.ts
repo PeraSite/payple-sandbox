@@ -232,8 +232,9 @@ describe("hosted window", () => {
 		expect(html).toContain("레터링 &lt;케이크&gt;");
 		for (const id of ["approve", "decline", "close"])
 			expect(html).toContain(`payple-sandbox-${id}`);
-		expect(html).toContain(`action="${callbackUrl}"`);
-		expect(html).toContain('name="PCD_PAY_REQKEY"');
+		expect(html).toContain(JSON.stringify(callbackUrl));
+		expect(html).toContain('"PCD_PAY_REQKEY"');
+		expect(html).toContain("네이버페이");
 	});
 
 	it("closes the window once the checkout is settled", async () => {
