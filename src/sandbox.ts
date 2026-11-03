@@ -376,7 +376,7 @@ export function createPaypleSandbox(options: SandboxOptions) {
 				PCD_REFUND_TOTAL: String(amount),
 			});
 		}
-		return rejected("PAPI0001", "payple-sandbox does not support this request");
+		return rejected("PAPI0001", "샌드박스가 지원하지 않는 요청이에요");
 	}
 
 	/** Delivers a CERT result to the merchant exactly like the hosted window would. */
@@ -423,7 +423,7 @@ export function createPaypleSandbox(options: SandboxOptions) {
 			if (!payment)
 				return json(
 					{
-						error: "Unknown OID. Pass total (and callbackUrl) to register it.",
+						error: "모르는 주문번호예요. 새로 등록하려면 total(과 callbackUrl)을 넘겨 주세요.",
 					},
 					{ status: 404 },
 				);
@@ -433,11 +433,14 @@ export function createPaypleSandbox(options: SandboxOptions) {
 			}
 			const result = body.result === undefined ? "approve" : parseCheckoutResult(body.result);
 			if (!result)
-				return json({ error: "result must be approve, decline or close" }, { status: 400 });
-			if (!payment.callbackUrl) return json({ error: "callbackUrl is required" }, { status: 400 });
+				return json(
+					{ error: "result는 approve, decline, close 중 하나여야 해요" },
+					{ status: 400 },
+				);
+			if (!payment.callbackUrl) return json({ error: "callbackUrl이 필요해요" }, { status: 400 });
 			return json(await deliverCallback(payment, result));
 		}
-		return json({ error: "Unknown sandbox control route" }, { status: 404 });
+		return json({ error: "없는 제어 주소예요" }, { status: 404 });
 	}
 
 	async function handle(request: Request): Promise<Response> {
@@ -457,7 +460,7 @@ export function createPaypleSandbox(options: SandboxOptions) {
 		if (url.pathname === "/__sandbox/checkouts" && request.method === "POST") {
 			const body = await readBody(request);
 			if (text(body.clientKey) !== credentials.clientKey) {
-				return cors(request, json({ error: "clientKey mismatch" }, { status: 403 }));
+				return cors(request, json({ error: "clientKey가 맞지 않아요" }, { status: 403 }));
 			}
 			const payment = registerCheckout({
 				callbackUrl: text(body.rstUrl),

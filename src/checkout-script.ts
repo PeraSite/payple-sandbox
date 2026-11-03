@@ -47,12 +47,12 @@ export function checkoutScript(origin: string) {
     const overlay = document.createElement("div");
     overlay.id = "payple-sandbox";
     overlay.setAttribute("role", "dialog");
-    overlay.setAttribute("aria-label", "Payple sandbox checkout");
+    overlay.setAttribute("aria-label", "페이플 샌드박스 결제창");
     overlay.style.cssText = "position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.55);display:grid;place-items:end center";
     const sheet = document.createElement("div");
     sheet.style.cssText = "width:min(420px,100%);background:#fff;border-radius:16px 16px 0 0;padding:20px;display:grid;gap:10px;font:14px sans-serif;color:#18181b";
     const amount = Number(payload.PCD_PAY_TOTAL).toLocaleString("ko-KR");
-    sheet.innerHTML = '<div style="font:700 12px sans-serif;color:#dc2626">SANDBOX · 실제 결제되지 않아요 (no real charge)</div>'
+    sheet.innerHTML = '<div style="font:700 12px sans-serif;color:#dc2626">SANDBOX · 실제로 결제되지 않아요</div>'
       + '<div style="font:700 18px sans-serif"></div><div style="font:800 26px sans-serif"></div>';
     sheet.children[1].textContent = payload.PCD_PAY_GOODS || "주문";
     sheet.children[2].textContent = amount + "원";

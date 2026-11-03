@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- Minimal merchant page: serve it from an allowed app origin, e.g.
-     bunx serve examples -l 3000   and   payple-sandbox -a http://localhost:3000 -->
+<!-- 최소 가맹점 예제: 결제창 허용 주소에서 띄워 주세요. 예)
+     bunx serve examples -l 3000   그리고   payple-sandbox -a http://localhost:3000 -->
 <html lang="ko">
 	<meta charset="utf-8" />
 	<title>payple-sandbox checkout example</title>
-	<button id="pay">30,000원 결제</button>
+	<button id="pay">30,000원 결제하기</button>
 	<script src="http://localhost:9444/js/v1/payment.js"></script>
 	<script>
 		document.getElementById("pay").onclick = () =>
