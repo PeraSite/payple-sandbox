@@ -1,0 +1,23 @@
+<!doctype html>
+<!-- Minimal merchant page: serve it from an allowed app origin, e.g.
+     bunx serve examples -l 3000   and   payple-sandbox -a http://localhost:3000 -->
+<html lang="ko">
+	<meta charset="utf-8" />
+	<title>payple-sandbox checkout example</title>
+	<button id="pay">30,000원 결제</button>
+	<script src="http://localhost:9444/js/v1/payment.js"></script>
+	<script>
+		document.getElementById("pay").onclick = () =>
+			window.PaypleCpayAuthCheck({
+				clientKey: "sandbox-client-key",
+				PCD_PAY_TYPE: "card",
+				PCD_PAY_WORK: "CERT",
+				PCD_CARD_VER: "02",
+				PCD_PAY_GOODS: "레터링 케이크",
+				PCD_PAY_TOTAL: 30000,
+				PCD_PAY_OID: `order_${Date.now()}`,
+				PCD_PAYER_NAME: "홍길동",
+				PCD_RST_URL: "http://localhost:3000/payple/callback",
+			});
+	</script>
+</html>

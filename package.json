@@ -1,0 +1,39 @@
+{
+	"name": "payple-sandbox",
+	"version": "0.1.0",
+	"description": "A local Payple app-card sandbox server for development, end-to-end tests and AI agents.",
+	"keywords": [
+		"payple",
+		"payment",
+		"sandbox",
+		"mock-server",
+		"korea",
+		"pg",
+		"e2e",
+		"testing",
+		"bun"
+	],
+	"license": "MIT",
+	"author": "PeraSite",
+	"repository": { "type": "git", "url": "git+https://github.com/PeraSite/payple-sandbox.git" },
+	"homepage": "https://github.com/PeraSite/payple-sandbox#readme",
+	"bugs": "https://github.com/PeraSite/payple-sandbox/issues",
+	"type": "module",
+	"module": "src/index.ts",
+	"exports": { ".": "./src/index.ts" },
+	"bin": { "payple-sandbox": "src/cli.ts" },
+	"files": ["src"],
+	"scripts": {
+		"start": "bun src/cli.ts",
+		"dev": "bun --watch src/cli.ts",
+		"test": "bun test",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check ."
+	},
+	"engines": { "bun": ">=1.1" },
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@types/bun": "latest",
+		"typescript": "^5.7.0"
+	}
+}
